@@ -59,8 +59,15 @@ export async function isBlockedByDNS(urlString: string): Promise<boolean> {
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.includes(':')) {
       return isPrivateIP(hostname);
     }
-    const result = await dns.lookup(hostname, { all: true });
-    return result.some((r) => isPrivateIP(r.address));
+    // Workers supports resolve4/resolve6 but not dns.lookup. Inspect both
+    // address families so a missing AAAA record cannot hide a private A record.
+    const results = await Promise.allSettled([
+      dns.resolve4(hostname),
+      dns.resolve6(hostname),
+    ]);
+    return results.some((result) =>
+      result.status === 'fulfilled' && result.value.some(isPrivateIP)
+    );
   } catch {
     return false; // 解析失败不阻断，交给后续请求处理
   }
@@ -108,3 +115,4 @@ export async function checkLiveUrlAllowed(urlString: string): Promise<UpstreamVe
   if (allowLivePrivate()) return { ok: true };
   return checkUpstreamAllowed(urlString);
 }
+
