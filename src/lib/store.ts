@@ -354,6 +354,7 @@ export const useAppStore = create<AppState>()(
       setEnvSources: (list) => {
         // 预置源首次出现时自动勾选（开箱即搜）；用户此后取消勾选不会被反复勾回
         const seen = new Set(get().envKeysSeen);
+        const available = new Set(list.map((s) => s.key));
         const freshKeys = list.map((s) => s.key).filter((k) => !seen.has(k));
         // 成人内容过滤开启时，成人预置源不自动勾选
         const toSelect = freshKeys.filter((k) => {
@@ -363,7 +364,11 @@ export const useAppStore = create<AppState>()(
         set({
           envSources: list,
           envKeysSeen: [...get().envKeysSeen, ...freshKeys],
-          selectedKeys: [...get().selectedKeys, ...toSelect],
+          // 移除已从部署配置中删去的预置源，避免显示孤儿源的停用提示。
+          selectedKeys: [
+            ...get().selectedKeys.filter((key) => !/^env_\d+$/.test(key) || available.has(key)),
+            ...toSelect,
+          ],
         });
       },
 
@@ -857,3 +862,4 @@ export function isInDisabledSubscription(
     (s) => s.enabled === false && keyBelongsToSubscription(key, subKeyPrefix(s.url))
   );
 }
+

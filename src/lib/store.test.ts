@@ -18,6 +18,8 @@ const list = (urls: string[]): Omit<SourceConfig, 'key'>[] => urls.map((url) => 
 beforeEach(() => {
   useAppStore.setState({
     customAPIs: [],
+    envSources: [],
+    envKeysSeen: [],
     selectedKeys: [],
     subscriptions: [],
     liveSubscriptions: [],
@@ -25,6 +27,17 @@ beforeEach(() => {
     liveFavorites: [],
     liveRecent: [],
     yellowFilter: false,
+  });
+});
+
+describe('预置源更新', () => {
+  it('移除不再下发的预置源选择，同时保留手动源选择', () => {
+    useAppStore.setState({
+      envKeysSeen: ['env_0', 'env_1'],
+      selectedKeys: ['env_0', 'env_1', 'manual_0'],
+    });
+    store().setEnvSources([{ key: 'env_0', name: '电影天堂资源', url: 'https://example.com/api.php' }]);
+    expect(store().selectedKeys).toEqual(['env_0', 'manual_0']);
   });
 });
 
@@ -390,3 +403,4 @@ describe('订阅整体开关', () => {
     expect(isInDisabledSubscription(store(), 'manual_0')).toBe(false);
   });
 });
+
