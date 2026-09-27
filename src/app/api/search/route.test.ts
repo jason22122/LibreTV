@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import dns from 'node:dns/promises';
 import { POST } from './route';
 import { SESSION_COOKIE, signSession } from '@/lib/auth';
 
@@ -53,6 +54,9 @@ const SOURCES = [
 ];
 
 beforeAll(() => {
+  // Keep SSRF DNS checks deterministic while upstream HTTP is mocked.
+  vi.spyOn(dns, 'resolve4').mockResolvedValue(['203.0.113.1'] as never);
+  vi.spyOn(dns, 'resolve6').mockRejectedValue(new Error('ENODATA'));
   process.env.PASSWORD = 'test-password-123';
 });
 
@@ -142,3 +146,5 @@ describe('POST /api/search', () => {
     expect(unauthorized.status).toBe(401);
   });
 });
+
+

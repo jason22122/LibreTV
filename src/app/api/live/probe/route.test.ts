@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import dns from 'node:dns/promises';
 import { POST } from './route';
 import { SESSION_COOKIE, signSession } from '@/lib/auth';
 
@@ -63,6 +64,10 @@ async function readNdjson(res: Response) {
 beforeAll(() => {
   process.env.PASSWORD = 'test-password';
   delete process.env.PROXY_SECRET;
+  // Production performs DNS-level SSRF checks. Unit-test hosts use the
+  // reserved .test TLD, so keep DNS deterministic while fetch is mocked.
+  vi.spyOn(dns, 'resolve4').mockResolvedValue(['203.0.113.1'] as never);
+  vi.spyOn(dns, 'resolve6').mockRejectedValue(new Error('ENODATA'));
 });
 
 afterEach(() => {
@@ -289,3 +294,4 @@ describe('POST /api/live/probe', () => {
     }
   });
 });
+
